@@ -69,3 +69,36 @@ class Holding(PricingItem):
 class Portfolio(PricingItem):
     Holdings: list[Holding]
 
+
+class MarketDataModel(PricingItem):
+    Underlying: str
+    Currency: str = Field(max_length=3, min_length=3)
+
+
+class MarketDataDatedModel(MarketDataModel):
+    ValuationDate: datetime.date
+    AsOf: pydantic.AwareDatetime
+
+
+class EqMarketData(MarketDataDatedModel):
+    Spot: float
+    DivYield: float = 0.0
+    RepoYield: float = 0.0
+
+
+class VolModel(MarketDataDatedModel):
+    pass
+
+
+class FlatEqVol(VolModel):
+    Vol: float = Field(gt=0.0)
+
+
+class EngineModel(BaseModel):
+    pass
+
+
+class MCEngineModel(EngineModel):
+    NRuns: int
+    NIter: int
+    Seed: int = 0
