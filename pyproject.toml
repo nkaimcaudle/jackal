@@ -1,0 +1,27 @@
+[project]
+name = "jackal"
+version = "0.1.0"
+description = "Add your description here"
+dependencies = [
+    "pydantic>=2.6.4",
+    "jax>=0.4.26",
+    "rich>=13.7.1",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "python-lsp-ruff>=2.2.0",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jackal"]
