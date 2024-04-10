@@ -12,14 +12,18 @@ annotated-types==0.6.0
     # via pydantic
 jax==0.4.26
     # via jackal
+jaxlib==0.4.26
+    # via jackal
 markdown-it-py==3.0.0
     # via rich
 mdurl==0.1.2
     # via markdown-it-py
 ml-dtypes==0.4.0
     # via jax
+    # via jaxlib
 numpy==1.26.4
     # via jax
+    # via jaxlib
     # via ml-dtypes
     # via opt-einsum
     # via scipy
@@ -35,6 +39,7 @@ rich==13.7.1
     # via jackal
 scipy==1.13.0
     # via jax
+    # via jaxlib
 typing-extensions==4.11.0
     # via pydantic
     # via pydantic-core

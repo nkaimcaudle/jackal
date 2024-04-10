@@ -6,6 +6,7 @@ dependencies = [
     "pydantic>=2.6.4",
     "jax>=0.4.26",
     "rich>=13.7.1",
+    "jaxlib>=0.4.26",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
