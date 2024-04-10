@@ -2,9 +2,14 @@ from pydantic import BaseModel, Field
 import pydantic
 import string
 import numpy as np
+import jax.numpy as jnp
 from rich import print
 import datetime
 from typing import Literal
+
+
+def _utc_now() -> datetime.datetime:
+    return datetime.datetime.now(datetime.UTC)
 
 
 def generate_pk(n: int = 6) -> str:
@@ -16,8 +21,39 @@ class PricingItem(BaseModel):
     pk: str = Field(default_factory=generate_pk)
 
 
+class MarketDataModel(PricingItem):
+    Underlying: str
+    Currency: str = Field(max_length=3, min_length=3)
+
+
+class MarketDataDatedModel(MarketDataModel):
+    ValuationDate: datetime.date
+    AsOf: pydantic.AwareDatetime = Field(default_factory=_utc_now)
+
+
+class IRCurveModel(MarketDataDatedModel):
+    pass
+
+
+class FlatIRCurve(IRCurveModel):
+    Rate: float
+
+
 class ProductModel(PricingItem):
     Currency: str = Field(min_length=3, max_length=3)
+
+    @property
+    def get_underlyings(self) -> tuple[str, ...]:
+        raise NotImplementedError()
+
+    @property
+    def get_modeling_dates(self) -> tuple[datetime.datetime, ...]:
+        raise NotImplementedError()
+
+    def payoff(
+        self, paths: jnp.array, dates: jnp.array, ircurve: IRCurveModel
+    ) -> float:
+        pass
 
 
 class VanillaOption(ProductModel):
@@ -25,9 +61,17 @@ class VanillaOption(ProductModel):
     Strike: float
     OptionType: Literal["Call", "Put"]
 
+    @property
+    def get_underlyings(self) -> tuple[str, ...]:
+        return (self.Underlying,)
+
 
 class EuroVanillaOption(VanillaOption):
     ExerciseDate: pydantic.AwareDatetime
+
+    @property
+    def get_modeling_dates(self) -> tuple[datetime.datetime, ...]:
+        return (self.ExerciseDate,)
 
 
 class AmerVanillaOption(VanillaOption):
@@ -70,16 +114,6 @@ class Portfolio(PricingItem):
     Holdings: list[Holding]
 
 
-class MarketDataModel(PricingItem):
-    Underlying: str
-    Currency: str = Field(max_length=3, min_length=3)
-
-
-class MarketDataDatedModel(MarketDataModel):
-    ValuationDate: datetime.date
-    AsOf: pydantic.AwareDatetime
-
-
 class EqMarketData(MarketDataDatedModel):
     Spot: float
     DivYield: float = 0.0
@@ -87,11 +121,19 @@ class EqMarketData(MarketDataDatedModel):
 
 
 class VolModel(MarketDataDatedModel):
+    def NFactors(self) -> int:
+        raise NotImplementedError()
+
+
+class LogNormalVolModel(VolModel):
     pass
 
 
-class FlatEqVol(VolModel):
+class FlatEqVol(LogNormalVolModel):
     Vol: float = Field(gt=0.0)
+
+    def NFactors(self) -> int:
+        return 1
 
 
 class EngineModel(BaseModel):
@@ -99,6 +141,6 @@ class EngineModel(BaseModel):
 
 
 class MCEngineModel(EngineModel):
-    NRuns: int
-    NIter: int
+    NRuns: int = Field(ge=1)
+    NIter: int = Field(ge=1)
     Seed: int = 0
