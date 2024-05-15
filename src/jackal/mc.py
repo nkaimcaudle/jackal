@@ -75,7 +75,10 @@ def price_mono_product(
     paths = jnp.reshape(paths, (engine.NRuns, engine.NIter, 1, -1))
     paths = mkt.Spot * paths
     _payoff = partial(
-        opt.payoff, underlyings=(opt.Underlying,), pegs=modeling_dates, ircurve=curve
+        product.payoff,
+        underlyings=(product.Underlying,),
+        pegs=modeling_dates,
+        ircurve=curve,
     )
     payoffs = jax.vmap(
         jax.vmap(
@@ -86,13 +89,14 @@ def price_mono_product(
 
 
 if __name__ == "__main__":
-    opt = models.EuroVanillaOption(
+    opt1 = models.EuroVanillaOption(
         Currency="USD",
         Underlying="BABA",
         Strike=105.0,
         OptionType="Call",
         ExerciseDate=datetime.datetime(2025, 4, 10, 16, 30, tzinfo=datetime.UTC),
     )
+    opt2 = opt1.copy(update=dict(OptionType="Put", pk=None))
     engine = models.MCEngineModel(
         NRuns=20,
         NIter=80_000,
@@ -100,7 +104,19 @@ if __name__ == "__main__":
     curve = models.FlatIRCurve(Currency="USD", Underlying="USD", Rate=0.05)
     mkt = models.EqMarketData(Currency="USD", Underlying="BABA", Spot=100.0)
     vol = models.FlatEqVol(Underlying="BABA", Currency="USD", RefSpot=100.0, Vol=0.2)
-    print(curve, engine, mkt, vol, opt)
+    print(
+        curve,
+        engine,
+        mkt,
+        vol,
+    )
 
-    a = price_mono_product(engine, opt, curve, mkt, vol)
+    print()
+    print(opt1)
+    a = price_mono_product(engine, opt1, curve, mkt, vol)
     print(a)
+
+    print()
+    print(opt2)
+    b = price_mono_product(engine, opt2, curve, mkt, vol)
+    print(b)
