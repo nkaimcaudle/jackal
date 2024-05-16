@@ -12,35 +12,25 @@ annotated-types==0.6.0
     # via pydantic
 appdirs==1.4.4
     # via ptpython
-asttokens==2.4.1
-    # via stack-data
 attrs==23.2.0
     # via cattrs
     # via lsprotocol
 cattrs==23.2.3
     # via lsprotocol
     # via python-lsp-ruff
-decorator==5.1.1
-    # via ipython
 docstring-to-markdown==0.15
     # via python-lsp-server
-executing==2.0.1
-    # via stack-data
-ipython==8.23.0
 jax==0.4.26
     # via jackal
 jaxlib==0.4.26
     # via jackal
 jedi==0.19.1
-    # via ipython
     # via ptpython
     # via python-lsp-server
 lsprotocol==2023.0.1
     # via python-lsp-ruff
 markdown-it-py==3.0.0
     # via rich
-matplotlib-inline==0.1.6
-    # via ipython
 mdurl==0.1.2
     # via markdown-it-py
 ml-dtypes==0.4.0
@@ -56,24 +46,16 @@ opt-einsum==3.3.0
     # via jax
 parso==0.8.4
     # via jedi
-pexpect==4.9.0
-    # via ipython
 pluggy==1.4.0
     # via python-lsp-server
 prompt-toolkit==3.0.43
-    # via ipython
     # via ptpython
 ptpython==3.0.26
-ptyprocess==0.7.0
-    # via pexpect
-pure-eval==0.2.2
-    # via stack-data
 pydantic==2.6.4
     # via jackal
 pydantic-core==2.16.3
     # via pydantic
 pygments==2.17.2
-    # via ipython
     # via ptpython
     # via rich
 python-lsp-jsonrpc==1.1.2
@@ -88,13 +70,6 @@ ruff==0.3.5
 scipy==1.13.0
     # via jax
     # via jaxlib
-six==1.16.0
-    # via asttokens
-stack-data==0.6.3
-    # via ipython
-traitlets==5.14.2
-    # via ipython
-    # via matplotlib-inline
 typing-extensions==4.11.0
     # via pydantic
     # via pydantic-core
