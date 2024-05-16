@@ -1,3 +1,4 @@
+from functools import partial
 import jax
 import jax.numpy as jnp
 import jax.random as jrnd
@@ -24,6 +25,29 @@ def evolve_heston(carry, X):
     return (perf_curr, v_curr, t_curr), move
 
 
+def mcpaths_single_heston(
+    key: jrnd.PRNGKey,
+    i: int,
+    JTs: jnp.ndarray,
+    JT0: float,
+    Nassets: int,
+    fwd_r: jnp.ndarray,
+    fwd_q: jnp.ndarray,
+    covL: jnp.ndarray,
+    S0: jnp.ndarray,
+    v0: jnp.ndarray,
+    kappa: jnp.ndarray,
+    theta: jnp.ndarray,
+    sigma: jnp.ndarray,
+) -> jnp.ndarray:
+    _key = jrnd.fold_in(key, i)
+    Z = jrnd.normal(_key, shape=(JTs.size, 2 * Nassets))
+    init = (jnp.zeros(Nassets), v0, JT0)
+    Xs = (Z, JTs, fwd_r, fwd_q, kappa, theta, sigma)
+    _, paths = jax.lax.scan(evolve_heston, init, Xs)
+    return S0 * jnp.exp(jnp.hstack(((0.0), jnp.cumsum(paths))))
+
+
 def mcpaths_heston(
     key: jrnd.PRNGKey,
     NRuns: int,
@@ -40,16 +64,28 @@ def mcpaths_heston(
     theta: jnp.ndarray,
     sigma: jnp.ndarray,
 ) -> jnp.ndarray:
-    Z = jrnd.normal(key, shape=(JTs.size, 2 * Nassets))
-    init = (jnp.zeros(Nassets), v0, JT0)
-    Xs = (Z, JTs, fwd_r, fwd_q, kappa, theta, sigma)
-    _, paths = jax.lax.scan(evolve_heston, init, Xs)
-    return S0 * jnp.exp(jnp.hstack(((0.0), jnp.cumsum(paths))))
+    paths_func = partial(
+        mcpaths_single_heston,
+        key=key,
+        JTs=JTs,
+        JT0=JT0,
+        Nassets=Nassets,
+        fwd_r=fwd_r,
+        fwd_q=fwd_q,
+        covL=covL,
+        S0=S0,
+        v0=v0,
+        kappa=kappa,
+        theta=theta,
+        sigma=sigma,
+    )
+    paths = jax.vmap(paths_func)(i=jnp.arange(NRuns * NIter))
+    return paths.reshape(NRuns, NIter, Nassets, -1)
 
 
-if __name__ == "__main__":
-    paths = mcpaths_heston(
-        jrnd.PRNGKey(3),
+def a():
+    return mcpaths_heston(
+        jrnd.PRNGKey(0),
         NRuns=2,
         NIter=1000,
         JTs=jnp.linspace(0.01, 1, 25),
@@ -68,4 +104,7 @@ if __name__ == "__main__":
         theta=jnp.sqrt(jnp.full((25, 1), 0.2)),
         sigma=jnp.zeros((25, 1)),
     )
-    print(paths)
+
+
+if __name__ == "__main__":
+    print(a())
