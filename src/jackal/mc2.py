@@ -5,9 +5,10 @@ import jax.random as jrnd
 
 
 def evolve_heston(carry, X):
-    perf_prev, v_prev, tprev = carry
+    perf_prev, v_prev, t_prev = carry
     Z, t_curr, r, q, kappa, theta, sigma = X
-    dt = t_curr - tprev
+    dt = t_curr - t_prev
+    sdt = jnp.sqrt(dt)
 
     # drift = dt * (r + -0.5 * sigma**2)
     # diffusion = sigma * jnp.sqrt(dt)
@@ -15,14 +16,16 @@ def evolve_heston(carry, X):
     Z_var_process = Z[1::2]
     Z_spot_process = Z[0::2]
     v_curr = jnp.maximum(
-        v_prev + kappa * (theta - v_prev) * dt + sigma * jnp.sqrt(dt) * Z_var_process,
+        v_prev
+        + kappa * (theta - v_prev) * dt
+        + sigma * jnp.sqrt(v_prev) * sdt * Z_var_process,
         0.0,
     )
-    drift = dt * (r + q - 0.5 * v_curr)
-    move = drift + jnp.sqrt(v_curr) * Z_spot_process * jnp.sqrt(dt)
+    drift = dt * ((r - q) - 0.5 * v_curr)
+    move = drift + jnp.sqrt(v_curr) * Z_spot_process * sdt
 
     perf_curr = perf_prev + move
-    return (perf_curr, v_curr, t_curr), move
+    return (perf_curr, v_curr, t_curr), (move, v_curr)
 
 
 def mcpaths_single_heston(
@@ -44,8 +47,9 @@ def mcpaths_single_heston(
     Z = jrnd.normal(_key, shape=(JTs.size, 2 * Nassets))
     init = (jnp.zeros(Nassets), v0, JT0)
     Xs = (Z, JTs, fwd_r, fwd_q, kappa, theta, sigma)
-    _, paths = jax.lax.scan(evolve_heston, init, Xs)
-    return S0 * jnp.exp(jnp.hstack(((0.0), jnp.cumsum(paths))))
+    _, (paths, vs) = jax.lax.scan(evolve_heston, init, Xs)
+    paths = jnp.vstack((jnp.zeros(Nassets), paths)).T
+    return S0[:, None] * jnp.exp(jnp.cumsum(paths, axis=-1))
 
 
 def mcpaths_heston(
@@ -80,31 +84,32 @@ def mcpaths_heston(
         sigma=sigma,
     )
     paths = jax.vmap(paths_func)(i=jnp.arange(NRuns * NIter))
-    return paths.reshape(NRuns, NIter, Nassets, -1)
+    return paths
 
 
 def a():
     return mcpaths_heston(
         jrnd.PRNGKey(0),
-        NRuns=2,
-        NIter=1000,
-        JTs=jnp.linspace(0.01, 1, 25),
+        NRuns=16,
+        NIter=10000,
+        JTs=jnp.linspace(0.01, 1, 64),
         JT0=0.0,
         Nassets=1,
-        fwd_r=jnp.full((25, 1), 0.05),
-        fwd_q=jnp.zeros((25, 1)),
-        covL=jnp.zeros((1, 1)),
-        S0=jnp.array(
-            [
-                100.0,
-            ]
-        ),
-        v0=jnp.sqrt(jnp.array([0.2])),
-        kappa=jnp.zeros((25, 1)),
-        theta=jnp.sqrt(jnp.full((25, 1), 0.2)),
-        sigma=jnp.zeros((25, 1)),
+        fwd_r=jnp.full(64, 0.05),
+        fwd_q=jnp.zeros((64, 1)),
+        covL=jnp.eye(2),
+        S0=jnp.array([100.0, ]),
+        v0=jnp.array([0.2, ]) ** 2,
+        kappa=jnp.zeros((64, 1)),
+        theta=jnp.full((64, 1), 0.0**2),
+        sigma=jnp.zeros((64, 1)),
     )
 
 
 if __name__ == "__main__":
-    print(a())
+    paths = a()
+    print(paths.shape)
+    ST = paths[:, 0, -1]
+    c = jnp.exp(-0.05) * jnp.maximum(ST - 105.0, 0.0)
+    p = jnp.exp(-0.05) * jnp.maximum(105.0 - ST, 0.0)
+    print(c.mean(), p.mean())
