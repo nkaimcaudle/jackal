@@ -97,8 +97,17 @@ def a():
         fwd_r=jnp.full(64, 0.05),
         fwd_q=jnp.zeros((64, 1)),
         covL=jnp.eye(2),
-        S0=jnp.array([100.0, ]),
-        v0=jnp.array([0.2, ]) ** 2,
+        S0=jnp.array(
+            [
+                100.0,
+            ]
+        ),
+        v0=jnp.array(
+            [
+                0.2,
+            ]
+        )
+        ** 2,
         kappa=jnp.zeros((64, 1)),
         theta=jnp.full((64, 1), 0.0**2),
         sigma=jnp.zeros((64, 1)),
