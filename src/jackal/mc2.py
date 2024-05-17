@@ -10,9 +10,9 @@ def evolve_heston(carry: tuple, X: tuple, covL: jnp.ndarray) -> tuple:
     dt = t_curr - t_prev
     sdt = jnp.sqrt(dt)
 
-    Zprime = covL @ Z
-    Z_var_process = Zprime[1::2]
-    Z_spot_process = Zprime[0::2]
+    W = covL @ Z
+    Z_var_process = W[1::2]
+    Z_spot_process = W[0::2]
     v_curr = jnp.maximum(
         v_prev
         + kappa * (theta - v_prev) * dt
