@@ -83,7 +83,7 @@ def mcpaths_heston(
         sigma=sigma,
     )
     paths = jax.vmap(paths_func)(i=jnp.arange(NRuns * NIter))
-    return paths
+    return paths.reshape(NRuns, NIter, Nassets, -1)
 
 
 def a():
@@ -117,7 +117,7 @@ def a():
 if __name__ == "__main__":
     paths = a()
     print(paths.shape)
-    ST = paths[:, 0, -1]
+    ST = paths[:, :, 0, -1]
     c = jnp.exp(-0.05) * jnp.maximum(ST - 105.0, 0.0)
     p = jnp.exp(-0.05) * jnp.maximum(105.0 - ST, 0.0)
     print(c.mean(), p.mean())
