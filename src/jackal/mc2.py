@@ -4,14 +4,15 @@ import jax.numpy as jnp
 import jax.random as jrnd
 
 
-def evolve_heston(carry, X):
+def evolve_heston(carry: tuple, X: tuple, covL: jnp.ndarray) -> tuple:
     perf_prev, v_prev, t_prev = carry
     Z, t_curr, r, q, kappa, theta, sigma = X
     dt = t_curr - t_prev
     sdt = jnp.sqrt(dt)
 
-    Z_var_process = Z[1::2]
-    Z_spot_process = Z[0::2]
+    Zprime = covL @ Z
+    Z_var_process = Zprime[1::2]
+    Z_spot_process = Zprime[0::2]
     v_curr = jnp.maximum(
         v_prev
         + kappa * (theta - v_prev) * dt
@@ -44,7 +45,8 @@ def mcpaths_single_heston(
     Z = jrnd.normal(_key, shape=(JTs.size, 2 * Nassets))
     init = (jnp.zeros(Nassets), v0, JT0)
     Xs = (Z, JTs, fwd_r, fwd_q, kappa, theta, sigma)
-    _, (paths, vs) = jax.lax.scan(evolve_heston, init, Xs)
+    _evolve_heston = partial(evolve_heston, covL=covL)
+    _, (paths, vs) = jax.lax.scan(_evolve_heston, init, Xs)
     paths = jnp.vstack((jnp.zeros(Nassets), paths)).T
     return S0[:, None] * jnp.exp(jnp.cumsum(paths, axis=-1))
 
