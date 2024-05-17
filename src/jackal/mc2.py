@@ -10,9 +10,6 @@ def evolve_heston(carry, X):
     dt = t_curr - t_prev
     sdt = jnp.sqrt(dt)
 
-    # drift = dt * (r + -0.5 * sigma**2)
-    # diffusion = sigma * jnp.sqrt(dt)
-    # move = drift + diffusion * Z
     Z_var_process = Z[1::2]
     Z_spot_process = Z[0::2]
     v_curr = jnp.maximum(
