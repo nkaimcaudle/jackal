@@ -104,10 +104,9 @@ def a():
         ),
         v0=jnp.array(
             [
-                0.2,
+                0.2**2,
             ]
-        )
-        ** 2,
+        ),
         kappa=jnp.zeros((64, 1)),
         theta=jnp.full((64, 1), 0.0**2),
         sigma=jnp.zeros((64, 1)),
