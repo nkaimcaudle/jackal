@@ -7,8 +7,8 @@ def date_diff(dt1: datetime.datetime, dt2: datetime.datetime) -> float:
     ) / datetime.timedelta(days=365.25)
 
 
-TDATE_PIVOT = datetime.datetime(2024, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
+JTDATE_PIVOT = datetime.datetime(2024, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
 
 
-def to_Tdate(dt: datetime.datetime) -> float:
-    return date_diff(TDATE_PIVOT, dt)
+def to_JTdate(dt: datetime.datetime) -> float:
+    return date_diff(JTDATE_PIVOT, dt)
