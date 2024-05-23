@@ -118,7 +118,8 @@ def a():
         theta=jnp.full((64, 1), 0.0**2),
         sigma=jnp.zeros((64, 1)),
     )
-    return PricingInfo(asof, paths, pegs, ("BABA",))
+    discfacts = jax.vmap(lambda t: jnp.exp(-0.05 * t))(pegs - asof)
+    return PricingInfo(asof, paths, pegs, ("BABA",), discfacts)
 
 
 def payoff_call(ul: str, expiry: float, strike: float) -> Callable:
@@ -126,7 +127,7 @@ def payoff_call(ul: str, expiry: float, strike: float) -> Callable:
         ul_idx = pi.uls.index(ul)
         JT_idx = jnp.argwhere(pi.pegs == expiry).item()
         ST = pi.paths[ul_idx, JT_idx]
-        return jnp.exp(-0.05 * (expiry - pi.asof)) * jnp.maximum(ST - strike, 0.0)
+        return pi.discfacts[JT_idx] * jnp.maximum(ST - strike, 0.0)
 
     return fn
 
@@ -136,7 +137,7 @@ def payoff_put(ul: str, expiry: float, strike: float) -> Callable:
         ul_idx = pi.uls.index(ul)
         JT_idx = jnp.argwhere(pi.pegs == expiry).item()
         ST = pi.paths[ul_idx, JT_idx]
-        return jnp.exp(-0.05 * (expiry - pi.asof)) * jnp.maximum(strike - ST, 0.0)
+        return pi.discfacts[JT_idx] * jnp.maximum(strike - ST, 0.0)
 
     return fn
 
@@ -146,12 +147,12 @@ def payoff_fwd(ul: str, expiry: float, strike: float) -> Callable:
         ul_idx = pi.uls.index(ul)
         JT_idx = jnp.argwhere(pi.pegs == expiry).item()
         ST = pi.paths[ul_idx, JT_idx]
-        return jnp.exp(-0.05 * (expiry - pi.asof)) * (ST - strike)
+        return pi.discfacts[JT_idx] * (ST - strike)
 
     return fn
 
 
-PricingInfo = namedtuple("PricingInfo", ["asof", "paths", "pegs", "uls"])
+PricingInfo = namedtuple("PricingInfo", ["asof", "paths", "pegs", "uls", "discfacts"])
 if __name__ == "__main__":
     pi = a()
     opt_call = payoff_call("BABA", 1.0, 115.0)
