@@ -2,11 +2,12 @@ from functools import partial
 from typing import Callable
 from collections import namedtuple
 import jax
+from jaxlib.xla_extension import ArrayImpl
 import jax.numpy as jnp
 import jax.random as jrnd
 
 
-def evolve_heston(carry: tuple, X: tuple, covL: jnp.ndarray) -> tuple:
+def evolve_heston(carry: tuple, X: tuple, covL: ArrayImpl) -> tuple:
     perf_prev, v_prev, t_prev = carry
     Z, t_curr, r, q, kappa, theta, sigma = X
     dt = t_curr - t_prev
@@ -31,18 +32,18 @@ def evolve_heston(carry: tuple, X: tuple, covL: jnp.ndarray) -> tuple:
 def mcpaths_single_heston(
     key: jrnd.PRNGKey,
     i: int,
-    JTs: jnp.ndarray,
+    JTs: ArrayImpl,
     JT0: float,
     Nassets: int,
-    fwd_r: jnp.ndarray,
-    fwd_q: jnp.ndarray,
-    covL: jnp.ndarray,
-    S0: jnp.ndarray,
-    v0: jnp.ndarray,
-    kappa: jnp.ndarray,
-    theta: jnp.ndarray,
-    sigma: jnp.ndarray,
-) -> jnp.ndarray:
+    fwd_r: ArrayImpl,
+    fwd_q: ArrayImpl,
+    covL: ArrayImpl,
+    S0: ArrayImpl,
+    v0: ArrayImpl,
+    kappa: ArrayImpl,
+    theta: ArrayImpl,
+    sigma: ArrayImpl,
+) -> ArrayImpl:
     _key = jrnd.fold_in(key, i)
     Z = jrnd.normal(_key, shape=(JTs.size, 2 * Nassets))
     init = (jnp.zeros(Nassets), v0, JT0)
@@ -57,18 +58,18 @@ def mcpaths_heston(
     key: jrnd.PRNGKey,
     NRuns: int,
     NIter: int,
-    JTs: jnp.ndarray,
+    JTs: ArrayImpl,
     JT0: float,
     Nassets: int,
-    fwd_r: jnp.ndarray,
-    fwd_q: jnp.ndarray,
-    covL: jnp.ndarray,
-    S0: jnp.ndarray,
-    v0: jnp.ndarray,
-    kappa: jnp.ndarray,
-    theta: jnp.ndarray,
-    sigma: jnp.ndarray,
-) -> jnp.ndarray:
+    fwd_r: ArrayImpl,
+    fwd_q: ArrayImpl,
+    covL: ArrayImpl,
+    S0: ArrayImpl,
+    v0: ArrayImpl,
+    kappa: ArrayImpl,
+    theta: ArrayImpl,
+    sigma: ArrayImpl,
+) -> ArrayImpl:
     paths_func = partial(
         mcpaths_single_heston,
         key=key,
