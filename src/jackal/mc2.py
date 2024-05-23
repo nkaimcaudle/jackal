@@ -1,4 +1,6 @@
 from functools import partial
+from typing import Callable
+from collections import namedtuple
 import jax
 import jax.numpy as jnp
 import jax.random as jrnd
@@ -87,11 +89,14 @@ def mcpaths_heston(
 
 
 def a():
-    return mcpaths_heston(
+    asof = 0.0
+    JTs = jnp.linspace(0.01, 1, 64)
+    pegs = jnp.hstack((0.0, JTs))
+    paths = mcpaths_heston(
         jrnd.PRNGKey(0),
         NRuns=16,
-        NIter=10000,
-        JTs=jnp.linspace(0.01, 1, 64),
+        NIter=10_000,
+        JTs=JTs,
         JT0=0.0,
         Nassets=1,
         fwd_r=jnp.full(64, 0.05),
@@ -111,12 +116,59 @@ def a():
         theta=jnp.full((64, 1), 0.0**2),
         sigma=jnp.zeros((64, 1)),
     )
+    return PricingInfo(asof, paths, pegs, ("BABA",))
 
 
+def payoff_call(ul: str, expiry: float, strike: float) -> Callable:
+    def fn1(pi: PricingInfo) -> float:
+        ul_idx = pi.uls.index(ul)
+        JT_idx = jnp.argwhere(pi.pegs == expiry).item()
+        ST = pi.paths[ul_idx, JT_idx]
+        return jnp.exp(-0.05 * (expiry - pi.asof)) * jnp.maximum(ST - strike, 0.0)
+
+    return fn1
+
+
+def payoff_put(ul: str, expiry: float, strike: float) -> Callable:
+    def fn1(pi: PricingInfo) -> float:
+        ul_idx = pi.uls.index(ul)
+        JT_idx = jnp.argwhere(pi.pegs == expiry).item()
+        ST = pi.paths[ul_idx, JT_idx]
+        return jnp.exp(-0.05 * (expiry - pi.asof)) * jnp.maximum(strike - ST, 0.0)
+
+    return fn1
+
+
+def payoff_fwd(ul: str, expiry: float, strike: float) -> Callable:
+    def fn1(pi: PricingInfo) -> float:
+        ul_idx = pi.uls.index(ul)
+        JT_idx = jnp.argwhere(pi.pegs == expiry).item()
+        ST = pi.paths[ul_idx, JT_idx]
+        return jnp.exp(-0.05 * (expiry - pi.asof)) * (ST - strike)
+
+    return fn1
+
+
+PricingInfo = namedtuple("PricingInfo", ["asof", "paths", "pegs", "uls"])
 if __name__ == "__main__":
-    paths = a()
-    print(paths.shape)
-    ST = paths[:, :, 0, -1]
-    c = jnp.exp(-0.05) * jnp.maximum(ST - 105.0, 0.0)
-    p = jnp.exp(-0.05) * jnp.maximum(105.0 - ST, 0.0)
-    print(c.mean(), p.mean())
+    pi = a()
+    opt_call = payoff_call("BABA", 1.0, 115.0)
+    opt_put = payoff_put("BABA", 1.0, 115.0)
+    opt_fwd = payoff_fwd("BABA", 1.0, 115.0)
+
+    def px_call(path) -> float:
+        _pi = PricingInfo(pi.asof, path, pi.pegs, pi.uls)
+        return opt_call(_pi)
+
+    def px_put(path) -> float:
+        _pi = PricingInfo(pi.asof, path, pi.pegs, pi.uls)
+        return opt_put(_pi)
+
+    def px_fwd(path) -> float:
+        _pi = PricingInfo(pi.asof, path, pi.pegs, pi.uls)
+        return opt_fwd(_pi)
+
+    a = jax.vmap(jax.vmap(px_call))(pi.paths).mean()
+    b = jax.vmap(jax.vmap(px_put))(pi.paths).mean()
+    c = jax.vmap(jax.vmap(px_fwd))(pi.paths).mean()
+    print(a, b, c)
