@@ -96,8 +96,8 @@ def a():
     pegs = jnp.hstack((0.0, JTs))
     paths = mcpaths_heston(
         jrnd.PRNGKey(0),
-        NRuns=16,
-        NIter=10_000,
+        NRuns=500,
+        NIter=1_000,
         JTs=JTs,
         JT0=0.0,
         Nassets=1,
