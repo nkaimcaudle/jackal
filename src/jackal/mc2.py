@@ -127,7 +127,10 @@ def payoff_call(ul: str, expiry: float, strike: float) -> Callable:
         ul_idx = pi.uls.index(ul)
         JT_idx = jnp.argwhere(pi.pegs == expiry).item()
         ST = pi.paths[ul_idx, JT_idx]
-        return pi.discfacts[JT_idx] * jnp.maximum(ST - strike, 0.0)
+        a = ST - strike
+        alpha = 10e4
+        cashflow = jax.nn.softplus(a * alpha) / alpha
+        return pi.discfacts[JT_idx] * cashflow
 
     return fn
 
@@ -137,7 +140,10 @@ def payoff_put(ul: str, expiry: float, strike: float) -> Callable:
         ul_idx = pi.uls.index(ul)
         JT_idx = jnp.argwhere(pi.pegs == expiry).item()
         ST = pi.paths[ul_idx, JT_idx]
-        return pi.discfacts[JT_idx] * jnp.maximum(strike - ST, 0.0)
+        a = strike - ST
+        alpha = 10e4
+        cashflow = jax.nn.softplus(a * alpha) / alpha
+        return pi.discfacts[JT_idx] * cashflow
 
     return fn
 
