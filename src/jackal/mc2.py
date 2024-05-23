@@ -159,19 +159,11 @@ if __name__ == "__main__":
     opt_put = payoff_put("BABA", 1.0, 115.0)
     opt_fwd = payoff_fwd("BABA", 1.0, 115.0)
 
-    def px_call(path) -> float:
-        _pi = PricingInfo(pi.asof, path, pi.pegs, pi.uls)
-        return opt_call(_pi)
+    def one_price(path, payoff) -> float:
+        _pi = PricingInfo(pi.asof, path, pi.pegs, pi.uls, pi.discfacts)
+        return payoff(_pi)
 
-    def px_put(path) -> float:
-        _pi = PricingInfo(pi.asof, path, pi.pegs, pi.uls)
-        return opt_put(_pi)
-
-    def px_fwd(path) -> float:
-        _pi = PricingInfo(pi.asof, path, pi.pegs, pi.uls)
-        return opt_fwd(_pi)
-
-    a = jax.vmap(jax.vmap(px_call))(pi.paths).mean()
-    b = jax.vmap(jax.vmap(px_put))(pi.paths).mean()
-    c = jax.vmap(jax.vmap(px_fwd))(pi.paths).mean()
+    a = jax.vmap(jax.vmap(partial(one_price, payoff=opt_call)))(pi.paths).mean()
+    b = jax.vmap(jax.vmap(partial(one_price, payoff=opt_put)))(pi.paths).mean()
+    c = jax.vmap(jax.vmap(partial(one_price, payoff=opt_fwd)))(pi.paths).mean()
     print(a, b, c)
