@@ -7,6 +7,7 @@ import jax.numpy as jnp
 import jax.random as jrnd
 
 
+@jax.jit
 def evolve_heston(carry: tuple, X: tuple, covL: ArrayImpl) -> tuple:
     perf_prev, v_prev, t_prev = carry
     Z, t_curr, r, q, kappa, theta, sigma = X
