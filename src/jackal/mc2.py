@@ -90,7 +90,7 @@ def mcpaths_heston(
     return paths.reshape(NRuns, NIter, Nassets, -1)
 
 
-def a():
+def a(spot=100.0):
     asof = 0.0
     JTs = jnp.linspace(0.01, 1, 64)
     pegs = jnp.hstack((0.0, JTs))
@@ -106,7 +106,7 @@ def a():
         covL=jnp.eye(2),
         S0=jnp.array(
             [
-                100.0,
+                spot,
             ]
         ),
         v0=jnp.array(
@@ -159,17 +159,25 @@ def payoff_fwd(ul: str, expiry: float, strike: float) -> Callable:
 
 
 PricingInfo = namedtuple("PricingInfo", ["asof", "paths", "pegs", "uls", "discfacts"])
+
+
+def one_price(path, payoff, pi) -> float:
+    _pi = PricingInfo(pi.asof, path, pi.pegs, pi.uls, pi.discfacts)
+    return payoff(_pi)
+
+
+def b(spot, opt) -> float:
+    pi = a(spot)
+    return jax.vmap(jax.vmap(partial(one_price, payoff=opt, pi=pi)))(pi.paths).mean()
+
+
 if __name__ == "__main__":
-    pi = a()
+    pi = a(100.0)
     opt_call = payoff_call("BABA", 1.0, 115.0)
     opt_put = payoff_put("BABA", 1.0, 115.0)
     opt_fwd = payoff_fwd("BABA", 1.0, 115.0)
 
-    def one_price(path, payoff) -> float:
-        _pi = PricingInfo(pi.asof, path, pi.pegs, pi.uls, pi.discfacts)
-        return payoff(_pi)
-
-    a = jax.vmap(jax.vmap(partial(one_price, payoff=opt_call)))(pi.paths).mean()
-    b = jax.vmap(jax.vmap(partial(one_price, payoff=opt_put)))(pi.paths).mean()
-    c = jax.vmap(jax.vmap(partial(one_price, payoff=opt_fwd)))(pi.paths).mean()
+    a = jax.vmap(jax.vmap(partial(one_price, payoff=opt_call, pi=pi)))(pi.paths).mean()
+    b = jax.vmap(jax.vmap(partial(one_price, payoff=opt_put, pi=pi)))(pi.paths).mean()
+    c = jax.vmap(jax.vmap(partial(one_price, payoff=opt_fwd, pi=pi)))(pi.paths).mean()
     print(a, b, c)
